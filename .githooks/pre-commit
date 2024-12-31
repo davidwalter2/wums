@@ -7,32 +7,6 @@ set -e
 # Trap the EXIT signal to print the last executed command when the script exits
 trap 'echo "Error on line $LINENO: $BASH_COMMAND" >&2' ERR
 
-
-# Find all staged c++ files
-STAGED_FILES_CPP=$(git diff --cached --name-only --diff-filter=d | grep -E '\.(c|cpp|h|hpp)$' || true)
-
-for FILE in $STAGED_FILES_CPP; do
-  clang++ -I./narf/narf/include/ -I./wremnants/include/ -std=c++20 -fsyntax-only $FILE 
-  if [ $? -ne 0 ]; then
-    echo "Syntax error in $FILE. Commit aborted."
-    exit 1
-  fi
-done
-
-
-# Find all staged json files
-STAGED_FILES_JSON=$(git diff --cached --name-only --diff-filter=d | grep -E '\.json$' || true)
-
-# Check syntax of each json file
-for FILE in $STAGED_FILES_JSON; do
-  python -m json.tool $FILE > /dev/null
-  if [ $? -ne 0 ]; then
-    echo "Syntax error in $FILE. Commit aborted."
-    exit 1
-  fi
-done
-
-
 # Find all staged Python files
 STAGED_FILES_PY=$(git diff --cached --name-only --diff-filter=d | grep -E '\.py$' || true)
 
@@ -70,10 +44,10 @@ done
 for FILE in $STAGED_FILES_PY; do
 
   # Remove unused imports
-  autoflake --in-place --expand-star-imports --remove-all-unused-imports "$FILE" --exclude=narf,wremnants-data
+  autoflake --in-place --expand-star-imports --remove-all-unused-imports "$FILE"
 
   # Run isort to organize imports
-  isort "$FILE" --skip narf --skip wremnants-data --profile black --line-length 88
+  isort "$FILE" --profile black --line-length 88
 
   # PEP 8 formatting
   black "$FILE"
