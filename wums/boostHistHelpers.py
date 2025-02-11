@@ -5,8 +5,7 @@ from functools import reduce
 import hist
 import numpy as np
 
-from utilities import common, logging
-from wremnants import plot_tools
+from wums import logging
 
 logger = logging.child_logger(__name__)
 
@@ -92,18 +91,16 @@ def divideHists(
         h1 = broadcastSystHist(h1, h2, flow, by_ax_name)
         h2 = broadcastSystHist(h2, h1, flow, by_ax_name)
 
-    if rel_unc:
-        storage = h1.storage_type()
+    h1vals, h2vals, h1vars, h2vars = valsAndVariances(h1, h2, flow=flow)
+
+    if rel_unc and h1vars is not None:
+        storage = hist.storage.Weight()
+    elif h1vars is None or h2vars is None:
+        storage = hist.storage.Double()
     else:
-        storage = (
-            h1.storage_type()
-            if h1.storage_type == h2.storage_type
-            else hist.storage.Double()
-        )
+        storage = hist.storage.Weight()
 
     outh = hist.Hist(*h1.axes, storage=storage) if createNew else h1
-
-    h1vals, h2vals, h1vars, h2vars = valsAndVariances(h1, h2, flow=flow)
 
     # Careful not to overwrite the values of h1
     out = (
@@ -131,12 +128,13 @@ def divideHists(
         )
 
     if outh.storage_type == hist.storage.Weight:
-        relvars = relVariances(h1vals, h2vals, h1vars, h2vars, cutoff=cutoff)
+        rel1 = relVariance(h1vals, h1vars, cutoff=cutoff)
         val2 = np.multiply(val, val)
         if rel_unc:
-            var = np.multiply(val2, relvars[0], out=val2)
+            var = np.multiply(val2, rel1, out=val2)
         else:
-            relsum = np.add(*relvars)
+            rel2 = relVariance(h2vals, h2vars, cutoff=cutoff)
+            relsum = np.add(rel1, rel2)
             var = np.multiply(relsum, val2, out=val2)
 
         outh.view(flow=flow)[...] = np.stack((val, var), axis=-1)
@@ -410,11 +408,11 @@ def addGenericAxis(h, axis, idx=None, add_trailing=True, flow=True):
     if idx != None:
         # add old histogram only in single bin
         slices = [idx if ax == axis else slice(None) for ax in hnew.axes]
-        hnew.view(flow=flow)[*slices] = h.view(flow=flow)
+        hnew.view(flow=flow)[tuple(slices)] = h.view(flow=flow)
     else:
         # Broadcast to new shape
         slices = [np.newaxis if ax == axis else slice(None) for ax in hnew.axes]
-        hnew.view(flow=flow)[...] = hnew.view(flow=flow) + h.view(flow=flow)[*slices]
+        hnew.view(flow=flow)[...] = hnew.view(flow=flow) + h.view(flow=flow)[tuple(slices)]
     return hnew
 
 
@@ -545,11 +543,28 @@ def mirrorAxes(h, axes, flow=True):
     return h
 
 
+def disableAxisFlow(ax):
+    if isinstance(ax, hist.axis.Integer):
+        args = [ax.edges[0], ax.edges[-1]]
+    elif isinstance(ax, hist.axis.Regular):
+        args = [ax.size, ax.edges[0], ax.edges[-1]]
+    else:
+        args = [ax.edges]
+
+    return type(ax)(
+        *args,
+        name=ax.name,
+        overflow=False,
+        underflow=False,
+        circular=ax.traits.circular,
+    )
+
+
 def disableFlow(h, axis_name):
     # disable the overflow and underflow bins of a single axes, while keeping the flow bins of other axes
     ax = h.axes[axis_name]
     ax_idx = [a.name for a in h.axes].index(axis_name)
-    new_ax = type(ax)(ax.edges, name=ax.name, overflow=False, underflow=False)
+    new_ax = disableAxisFlow(ax)
     axes = list(h.axes)
     axes[ax_idx] = new_ax
     hnew = hist.Hist(*axes, name=h.name, storage=h.storage_type())
@@ -561,9 +576,9 @@ def disableFlow(h, axis_name):
         )
         for i in range(len(axes))
     ]
-    hnew.values(flow=True)[...] = h.values(flow=True)[*slices]
+    hnew.values(flow=True)[...] = h.values(flow=True)[tuple(slices)]
     if hnew.storage_type == hist.storage.Weight:
-        hnew.variances(flow=True)[...] = h.variances(flow=True)[*slices]
+        hnew.variances(flow=True)[...] = h.variances(flow=True)[tuple(slices)]
     return hnew
 
 
@@ -776,6 +791,23 @@ def projectNoFlow(h, proj_ax, exclude=[]):
     return hnoflow.project(*proj_ax)
 
 
+def extendEdgesByFlow(href, bin_flow_width=0.02):
+    # add extra bin with bin wdith of a fraction of the total width
+    all_edges = []
+    for axis in href.axes:
+        edges = axis.edges
+        axis_range = edges[-1] - edges[0]
+        if axis.traits.underflow:
+            edges = np.insert(edges, 0, edges[0] - axis_range * bin_flow_width)
+        if axis.traits.overflow:
+            edges = np.append(edges, edges[-1] + axis_range * bin_flow_width)
+        all_edges.append(edges)
+    if len(all_edges) == 1:
+        return all_edges[0]
+    else:
+        return all_edges
+
+
 def unrolledHist(h, obs=None, binwnorm=None, add_flow_bins=False):
     # add_flow_bins to add the overflow and underflow bins into bins of the unrolled histogram
     if obs is not None:
@@ -837,7 +869,12 @@ def syst_min_and_max_env_hist(h, proj_ax, syst_ax, indices, no_flow=[]):
     hdown = syst_min_or_max_env_hist(
         h, proj_ax, syst_ax, indices, no_flow=no_flow, do_min=True
     )
-    hnew = hist.Hist(*hup.axes, common.down_up_axis, storage=hup.storage_type())
+
+    down_up_axis = hist.axis.Regular(
+        2, -2.0, 2.0, underflow=False, overflow=False, name="downUpVar"
+    )
+
+    hnew = hist.Hist(*hup.axes, down_up_axis, storage=hup.storage_type())
     hnew[..., 0] = hdown.view(flow=True)
     hnew[..., 1] = hup.view(flow=True)
     return hnew
@@ -916,8 +953,12 @@ def combineUpDownVarHists(down_hist, up_hist):
             "input up and down histograms have different axes, can't combine"
         )
     else:
+        down_up_axis = hist.axis.Regular(
+            2, -2.0, 2.0, underflow=False, overflow=False, name="downUpVar"
+        )
+
         hnew = hist.Hist(
-            *up_hist.axes, common.down_up_axis, storage=up_hist.storage_type()
+            *up_hist.axes, down_up_axis, storage=up_hist.storage_type()
         )
         hnew.view(flow=True)[...] = np.stack(
             (down_hist.view(flow=True), up_hist.view(flow=True)), axis=-1
@@ -946,12 +987,12 @@ def set_flow(h, val="nearest"):
     # sets the values of the underflow and overflow bins to given value; if val='nearest' the values of the nearest bins are taken
     for axis in [a.name for a in h.axes if a.traits.overflow]:
         slices = [slice(None) if a != axis else -1 for a in h.axes.name]
-        h.view(flow=True)[*slices] = (
+        h.view(flow=True)[tuple(slices)] = (
             h[{axis: -1}].view(flow=True) if val == "nearest" else val
         )
     for axis in [a.name for a in h.axes if a.traits.underflow]:
         slices = [slice(None) if a != axis else 0 for a in h.axes.name]
-        h.view(flow=True)[*slices] = (
+        h.view(flow=True)[tuple(slices)] = (
             h[{axis: 0}].view(flow=True) if val == "nearest" else val
         )
     return h
@@ -1068,11 +1109,11 @@ def swap_histogram_bins(
     # swap bins in specified slices
     data = histo.view(flow=flow)
     new_histo = histo.copy()
-    new_histo.view(flow=flow)[*slices2] = (
-        data[*slices1] if axis1_replace is None else data[*slicesR]
+    new_histo.view(flow=flow)[tuple(slices2)] = (
+        data[tuple(slices1)] if axis1_replace is None else data[tuple(slicesR)]
     )
-    new_histo.view(flow=flow)[*slices1] = (
-        data[*slices2] if axis1_replace is None else data[*slicesR]
+    new_histo.view(flow=flow)[tuple(slices1)] = (
+        data[tuple(slices2)] if axis1_replace is None else data[tuple(slicesR)]
     )
     return new_histo
 

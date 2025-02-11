@@ -20,9 +20,8 @@ from matplotlib.patches import Polygon
 # for setting number of decimal places on tick labels
 from matplotlib.ticker import StrMethodFormatter
 
-import narf
-from utilities import boostHistHelpers as hh
-from utilities import common, logging
+from wums import boostHistHelpers as hh
+from wums import ioutils, logging
 
 hep.style.use(hep.style.ROOT)
 
@@ -1587,73 +1586,6 @@ def save_pdf_and_png(outdir, basename, fig=None):
         plt.savefig(fname.replace(".pdf", ".png"), bbox_inches="tight")
     logger.info(f"Wrote file(s) {fname}(.png)")
     logger.info(f"Wrote file(s) {fname}(.png)")
-
-
-def write_index_and_log(
-    outpath,
-    logname,
-    template_dir=f"{pathlib.Path(__file__).parent}/Templates",
-    yield_tables=None,
-    analysis_meta_info=None,
-    args={},
-    nround=2,
-):
-    indexname = "index.php"
-    if "mit.edu" in socket.gethostname() and not (
-        hasattr(args, "eoscp") and args.eoscp
-    ):
-        indexname = "index_mit.php"
-
-    shutil.copyfile(f"{template_dir}/{indexname}", f"{outpath}/index.php")
-    logname = f"{outpath}/{logname}.log"
-
-    with open(logname, "w") as logf:
-        meta_info = (
-            "-" * 80
-            + "\n"
-            + f"Script called at {datetime.datetime.now()}\n"
-            + f"The command was: {narf.ioutils.script_command_to_str(sys.argv, args)}\n"
-            + "-" * 80
-            + "\n"
-        )
-        logf.write(meta_info)
-        meta_info = narf.ioutils.make_meta_info_dict(
-            "notebooks", args=args, wd=common.base_dir
-        )
-        logf.write(f"git hash: {meta_info['git_hash']}\n")
-        logf.write(f"git diff: {meta_info['git_diff']}\n")
-
-        if yield_tables:
-            for k, v in yield_tables.items():
-                logf.write(f"Yield information for {k}\n")
-                logf.write("-" * 80 + "\n")
-                logf.write(str(v.round(nround)) + "\n\n")
-
-            if (
-                "Unstacked processes" in yield_tables
-                and "Stacked processes" in yield_tables
-            ):
-                if "Data" in yield_tables["Unstacked processes"]["Process"].values:
-                    unstacked = yield_tables["Unstacked processes"]
-                    data_yield = unstacked[unstacked["Process"] == "Data"][
-                        "Yield"
-                    ].iloc[0]
-                    ratio = (
-                        float(
-                            yield_tables["Stacked processes"]["Yield"].sum()
-                            / data_yield
-                        )
-                        * 100
-                    )
-                    logf.write(f"===> Sum unstacked to data is {ratio:.2f}%")
-
-        if analysis_meta_info:
-            for k, analysis_info in analysis_meta_info.items():
-                logf.write("\n" + "-" * 80 + "\n")
-                logf.write(f"Meta info from input file {k}\n")
-                logf.write("\n" + "-" * 80 + "\n")
-                logf.write(json.dumps(analysis_info, indent=5).replace("\\n", "\n"))
-        logger.info(f"Writing file {logname}")
 
 
 def make_summary_plot(
