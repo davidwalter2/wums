@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wums"
+version = "0.1.2"
+description = "."
+readme = { file = "README.md", content-type = "text/markdown" }
+license = { text = "MIT" }
+authors = [
+    {name = "David Walter", email = "david.walter@cern.ch"},
+    {name = "Josh Bendavid", email = "josh.bendavid@cern.ch"},
+    {name = "Kenneth Long", email = "kenneth.long@cern.ch"},
+]
+urls = {Homepage = "https://github.com/WMass/wums"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent"
+]
+requires-python = ">=3.8"
+
+dependencies = [
+    "boost_histogram",
+    "h5py",
+    "hdf5plugin",
+    "hist",
+    "lz4",
+    "matplotlib",
+    "mplhep",
+    "numpy",
+    "uproot"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
