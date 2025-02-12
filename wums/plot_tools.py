@@ -421,16 +421,16 @@ def get_custom_handler_map(keys):
     return handler_map
 
 
-# https://stackoverflow.com/questions/53122592/legend-with-vertical-line
 def update_prop(handle, orig):
+    # https://stackoverflow.com/questions/53122592/legend-with-vertical-line
     handle.update_from(orig)
     x, y = handle.get_data()
     handle.set_data([np.mean(x)] * 2, [0, 2 * y[0]])
 
 
 def padding(ncols, labels, handles, loc="auto"):
+    # if not all legend places are filled, add empty legend entries towards the center of the figure
     if len(labels) % ncols:
-        # if not all legend places are filled, add empty legend entries towards the center of the figure
         rest = ncols - len(labels) % ncols
         nrows = int(np.ceil(len(labels) / ncols))
         for i in range(rest):

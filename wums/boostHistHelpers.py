@@ -19,8 +19,8 @@ def valsAndVariances(h1, h2, flow=True):
     )
 
 
-# Broadcast h1 to match the shape of h2
 def broadcastSystHist(h1, h2, flow=True, by_ax_name=True):
+    # Broadcast h1 to match the shape of h2
     if h1.ndim > h2.ndim or h1.shape == h2.shape:
         return h1
 
@@ -158,10 +158,6 @@ def relVariances(h1vals, h2vals, h1vars, h2vars, cutoff=1e-5):
     rel1 = relVariance(h1vals, h1vars, cutoff=cutoff)
     rel2 = relVariance(h2vals, h2vars, cutoff=cutoff)
     return (rel1, rel2)
-
-
-# TODO: Implement this rather than relying on pdf unc function
-# def rssHist(h):
 
 
 def sqrtHist(h):
@@ -358,50 +354,6 @@ def mirrorHist(hvar, hnom, cutoff=1):
     return hnew
 
 
-def extendHistByMirror(hvar, hnom, downAsUp=False, downAsNomi=False):
-    hmirror = mirrorHist(hvar, hnom)
-    if downAsNomi:
-        hvar, hmirror = hmirror, hvar
-
-    mirrorAx = hist.axis.Integer(0, 2, name="mirror", overflow=False, underflow=False)
-
-    if (
-        hvar.storage_type == hist.storage.Weight
-        and hnom.storage_type == hist.storage.Weight
-    ):
-        hnew = hist.Hist(
-            *hvar.axes,
-            mirrorAx,
-            storage=hist.storage.Weight(),
-            data=np.stack((hvar.view(flow=True), hmirror.view(flow=True)), axis=-1),
-        )
-    else:
-        hnew = hist.Hist(
-            *hvar.axes,
-            mirrorAx,
-            data=np.stack((hvar.values(flow=True), hmirror.values(flow=True)), axis=-1),
-        )
-
-    return hnew
-
-
-# add new axis and set values of old histogram to idx
-def addGenChargeAxis(h, idx):
-    return addGenericAxis(
-        h,
-        hist.axis.Regular(2, -2.0, 2.0, underflow=False, overflow=False, name="qGen"),
-        idx,
-        add_trailing=False,
-        flow=True,
-    )
-
-
-def addSystAxis(h, size=1, offset=0, axname="systIdx"):
-    return addGenericAxis(
-        h, hist.axis.Regular(size, offset, size + offset, name=axname)
-    )
-
-
 def addGenericAxis(h, axis, idx=None, add_trailing=True, flow=True):
     axes = [*h.axes, axis] if add_trailing else [axis, *h.axes]
     hnew = hist.Hist(*axes, storage=h.storage_type())
@@ -491,8 +443,8 @@ def makeAbsHist(h, axis_name, rename=True):
     return hnew
 
 
-# Checks if edges1 could be rebinned to edges2. Order is important!
 def compatibleBins(edges1, edges2):
+    # Checks if edges1 could be rebinned to edges2. Order is important!
     comparef = np.vectorize(lambda x: np.isclose(x, edges1).any())
     return np.all(comparef(edges2))
 
@@ -998,11 +950,13 @@ def set_flow(h, val="nearest"):
     return h
 
 
-# For converting the helicity scale hist to variations, keeping the gen axis to be fit
-# If swap_axes = True, the new axis takes the place of the old gen axis in the ordering
+
 def expand_hist_by_duplicate_axis(
     href, ref_ax_name, new_ax_name, swap_axes=False, put_trailing=False, flow=True
 ):
+    # For converting the helicity scale hist to variations, keeping the gen axis to be fit
+    # If swap_axes = True, the new axis takes the place of the old gen axis in the ordering
+
     if ref_ax_name not in href.axes.name:
         raise ValueError(f"Did not find axis {ref_ax_name} in hist!")
 
