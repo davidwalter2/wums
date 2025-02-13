@@ -185,71 +185,21 @@ def write_logfile(
                 logf.write(f"{k}: {v}\n")
 
 
+def write_indexfile(
+    outpath,
+    template_dir=f"{pathlib.Path(__file__).parent}/Templates",
+    indexname = "index.php"
+):
+    shutil.copyfile(f"{template_dir}/{indexname}", f"{outpath}/index.php")
+
+
 def write_index_and_log(
     outpath,
     logname,
     template_dir=f"{pathlib.Path(__file__).parent}/Templates",
-    yield_tables=None,
     analysis_meta_info=None,
     args={},
-    nround=2,
     wd=f"{pathlib.Path(__file__).parent}/../",
 ):
-    indexname = "index.php"
-    if "mit.edu" in socket.gethostname() and not (
-        hasattr(args, "eoscp") and args.eoscp
-    ):
-        indexname = "index_mit.php"
-
-    shutil.copyfile(f"{template_dir}/{indexname}", f"{outpath}/index.php")
-    logname = f"{outpath}/{logname}.log"
-
-    with open(logname, "w") as logf:
-        meta_info = (
-            "-" * 80
-            + "\n"
-            + f"Script called at {datetime.datetime.now()}\n"
-            + f"The command was: {script_command_to_str(sys.argv, args)}\n"
-            + "-" * 80
-            + "\n"
-        )
-        logf.write(meta_info)
-        meta_info = make_meta_info_dict(
-            "notebooks",
-            args=args,
-            wd=wd,
-        )
-        logf.write(f"git hash: {meta_info['git_hash']}\n")
-        logf.write(f"git diff: {meta_info['git_diff']}\n")
-
-        if yield_tables:
-            for k, v in yield_tables.items():
-                logf.write(f"Yield information for {k}\n")
-                logf.write("-" * 80 + "\n")
-                logf.write(str(v.round(nround)) + "\n\n")
-
-            if (
-                "Unstacked processes" in yield_tables
-                and "Stacked processes" in yield_tables
-            ):
-                if "Data" in yield_tables["Unstacked processes"]["Process"].values:
-                    unstacked = yield_tables["Unstacked processes"]
-                    data_yield = unstacked[unstacked["Process"] == "Data"][
-                        "Yield"
-                    ].iloc[0]
-                    ratio = (
-                        float(
-                            yield_tables["Stacked processes"]["Yield"].sum()
-                            / data_yield
-                        )
-                        * 100
-                    )
-                    logf.write(f"===> Sum unstacked to data is {ratio:.2f}%")
-
-        if analysis_meta_info:
-            for k, analysis_info in analysis_meta_info.items():
-                logf.write("\n" + "-" * 80 + "\n")
-                logf.write(f"Meta info from input file {k}\n")
-                logf.write("\n" + "-" * 80 + "\n")
-                logf.write(json.dumps(analysis_info, indent=5).replace("\\n", "\n"))
-        logger.info(f"Writing file {logname}")
+    write_indexfile(outpath, template_dir)
+    write_logfile(outpath, logname, args, analysis_meta_info)
