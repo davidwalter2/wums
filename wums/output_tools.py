@@ -5,6 +5,7 @@ import pathlib
 import pickle
 import re
 import shutil
+import importlib.resources as pkg_resources
 import subprocess
 import sys
 import tempfile
@@ -185,19 +186,17 @@ def write_logfile(
                 logf.write(f"{k}: {v}\n")
 
 
-def write_indexfile(
-    outpath,
-    template_dir=f"{pathlib.Path(__file__).parent}/../Templates",
-    indexname = "index.php"
-):
-    shutil.copyfile(f"{template_dir}/{indexname}", f"{outpath}/index.php")
+def write_indexfile(outpath, template_dir="Templates", indexname="index.php"):
+    with pkg_resources.files("wums").joinpath(f"{template_dir}/{indexname}").open("rb") as src:
+        with open(f"{outpath}/index.php", "wb") as dst:
+            shutil.copyfileobj(src, dst)
 
 
 def write_index_and_log(
     outpath,
     logname,
-    template_dir=f"{pathlib.Path(__file__).parent}/../Templates",
-    analysis_meta_info=None,
+    template_dir="Templates",
+    analysis_meta_info={},
     args={},
     wd=f"{pathlib.Path(__file__).parent}/../",
 ):
