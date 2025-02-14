@@ -187,7 +187,7 @@ def write_logfile(
 
 def write_indexfile(
     outpath,
-    template_dir=f"{pathlib.Path(__file__).parent}/Templates",
+    template_dir=f"{pathlib.Path(__file__).parent}/../Templates",
     indexname = "index.php"
 ):
     shutil.copyfile(f"{template_dir}/{indexname}", f"{outpath}/index.php")
@@ -196,7 +196,7 @@ def write_indexfile(
 def write_index_and_log(
     outpath,
     logname,
-    template_dir=f"{pathlib.Path(__file__).parent}/Templates",
+    template_dir=f"{pathlib.Path(__file__).parent}/../Templates",
     analysis_meta_info=None,
     args={},
     wd=f"{pathlib.Path(__file__).parent}/../",
