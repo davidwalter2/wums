@@ -1,5 +1,9 @@
 import copyreg
 import pickle
+import sys
+
+import wums
+sys.modules['narf.ioutils'] = sys.modules['wums.ioutils'] # backwards compatibility to use old files
 
 import boost_histogram as bh
 import h5py
