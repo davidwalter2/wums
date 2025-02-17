@@ -601,14 +601,48 @@ def wrap_text(
     )
 
 
-def add_cms_decor(
-    ax, label=None, lumi=None, loc=2, data=True, text_size=None, no_energy=False
+def add_cms_decor(ax, *args, **kwargs):
+    add_decor(ax, "CMS", *args, **kwargs)
+
+
+def add_decor(
+    ax, title, label=None, lumi=None, loc=2, data=True, text_size=None, no_energy=False
 ):
     text_size = get_textsize(ax, text_size)
-    if no_energy:
-        hep.cms.text(ax=ax, text=label, loc=loc, fontsize=text_size)
+
+    if title in ["CMS", "ATLAS", "LHCb", "ALICE"]:
+        module = getattr(hep, title.lower())
+        make_text = module.text
+        make_label = module.label
     else:
-        hep.cms.label(
+        def make_text(text=None, **kwargs):
+            for key, value in dict(hep.rcParams.text._get_kwargs()).items():
+                if (
+                    value is not None
+                    and key not in kwargs
+                    and key in inspect.getfullargspec(label_base.exp_text).kwonlyargs
+                ):
+                    kwargs.setdefault(key, value)
+            kwargs.setdefault("italic", (False, True, False))
+            kwargs.setdefault("exp", title)
+            return hep.label.exp_text(text=text, **kwargs)
+
+        def make_label(**kwargs):
+            for key, value in dict(hep.rcParams.text._get_kwargs()).items():
+                if (
+                    value is not None
+                    and key not in kwargs
+                    and key in inspect.getfullargspec(label_base.exp_text).kwonlyargs
+                ):
+                    kwargs.setdefault(key, value)
+            kwargs.setdefault("italic", (False, True, False))
+            kwargs.setdefault("exp", title)
+            return hep.label.exp_label(**kwargs)
+
+    if no_energy:
+        make_text(ax=ax, text=label, loc=loc, fontsize=text_size)
+    else:
+        make_label(
             ax=ax,
             lumi=lumi,
             lumi_format="{0:.3g}",
@@ -617,7 +651,32 @@ def add_cms_decor(
             data=data,
             loc=loc,
         )
-
+    
+    # else:
+    #     if loc==0:
+    #         # above frame
+    #         x = 0.0
+    #         y = 1.0
+    #     elif loc==1:
+    #         # in frame
+    #         x = 0.05
+    #         y = 0.88
+    #     elif loc==2:
+    #         # upper left, label below title
+    #         x = 0.05
+    #         y = 0.88
+    #     elif loc==2:
+    #         #     
+    #     ax.text(
+    #         x,
+    #         y,
+    #         args.title,
+    #         transform=ax1.transAxes,
+    #         fontweight="bold",
+    #         fontsize=1.2 * text_size,
+    #     )
+    #     if label is not None:
+    #         ax.text(0.05, 0.80, label, transform=ax.transAxes, fontstyle="italic")
 
 def makeStackPlotWithRatio(
     histInfo,
@@ -826,11 +885,11 @@ def makeStackPlotWithRatio(
             for x in (data_hist.sum(), hh.sumHists(stack).sum())
         ]
         varis = [
-            x.variance if hasattr(x, "variance") else x ** 0.5
+            x.variance if hasattr(x, "variance") else x**0.5
             for x in (data_hist.sum(), hh.sumHists(stack).sum())
         ]
         scale = vals[0] / vals[1]
-        unc = scale * (varis[0] / vals[0] ** 2 + varis[1] / vals[1] ** 2) ** 0.5
+        unc = scale * (varis[0] / vals[0] ** 2 + varis[1] / vals[1] ** 2)**0.5
         ndigits = -math.floor(math.log10(abs(unc))) + 1
         logger.info(
             f"Rescaling all processes by {round(scale,ndigits)} +/- {round(unc,ndigits)} to match data norm"
