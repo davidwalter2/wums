@@ -42,19 +42,19 @@ def set_logging_level(log, verbosity):
     log.setLevel(logging_verboseLevel[max(0, min(4, verbosity))])
 
 
-def setup_logger(basefile, verbosity=3, no_colors=False, initName="wremnants"):
+def setup_logger(basefile, verbosity=3, no_colors=False, initName="wums"):
 
     setup_func = setup_base_logger if no_colors else setup_color_logger
     logger = setup_func(os.path.basename(basefile), verbosity, initName)
     # count messages of base logger
-    base_logger = logging.getLogger("wremnants")
+    base_logger = logging.getLogger("wums")
     add_logging_counter(base_logger)
     # stop total time
     add_time_info("Total time")
     return logger
 
 
-def setup_color_logger(name, verbosity, initName="wremnants"):
+def setup_color_logger(name, verbosity, initName="wums"):
     base_logger = logging.getLogger(initName)
     # set console handler
     ch = logging.StreamHandler()
@@ -65,14 +65,14 @@ def setup_color_logger(name, verbosity, initName="wremnants"):
     return base_logger.getChild(name)
 
 
-def setup_base_logger(name, verbosity, initName="wremnants"):
+def setup_base_logger(name, verbosity, initName="wums"):
     logging.basicConfig(format="%(levelname)s: %(message)s")
     base_logger = logging.getLogger(initName)
     set_logging_level(base_logger, verbosity)
     return base_logger.getChild(name)
 
 
-def child_logger(name, initName="wremnants"):
+def child_logger(name, initName="wums"):
     # count messages of child logger
     logger = logging.getLogger(initName).getChild(name)
     add_logging_counter(logger)
@@ -110,7 +110,7 @@ def print_logging_count(logger, verbosity=logging.WARNING):
                 )
 
 
-def add_time_info(tag, logger=logging.getLogger("wremnants")):
+def add_time_info(tag, logger=logging.getLogger("wums")):
     if not hasattr(logger, "times"):
         logger.times = {}
     logger.times[tag] = time.time()
@@ -125,7 +125,7 @@ def print_time_info(logger):
 
 
 def summary(verbosity=logging.WARNING, extended=True):
-    base_logger = logging.getLogger("wremnants")
+    base_logger = logging.getLogger("wums")
 
     base_logger.info(f"--------------------------------------")
     base_logger.info(f"----------- logger summary -----------")
@@ -141,5 +141,5 @@ def summary(verbosity=logging.WARNING, extended=True):
     # Iterate through all child loggers and print their names, levels, and counts
     all_loggers = logging.Logger.manager.loggerDict
     for logger_name, logger_obj in all_loggers.items():
-        if logger_name.startswith("wremnants."):
+        if logger_name.startswith("wums."):
             print_logging_count(logger_obj, verbosity=verbosity)

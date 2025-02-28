@@ -40,7 +40,7 @@ def broadcastSystHist(h1, h2, flow=True, by_ax_name=True):
             h2.ndim - 1 - i: h2.values(flow=flow).shape[h2.ndim - 1 - i]
             for i in range(h2.ndim - h1.ndim)
         }
-
+    
     broadcast_shape = list(moves.values()) + list(s1)
 
     try:
@@ -52,6 +52,10 @@ def broadcastSystHist(h1, h2, flow=True, by_ax_name=True):
             f"    h1.axes: {h1.axes}\n"
             f"    h2.axes: {h2.axes}"
         )
+
+    if by_ax_name:
+        # We also have to move axes that are in common between h1 and h2 but in different order
+        moves.update({sum([k<i for k in moves.keys()]) + h1.axes.name.index(n2): None for i, n2 in enumerate(h2.axes.name) if n2 in h1.axes.name})
 
     # move back to original order
     new_vals = np.moveaxis(new_vals, np.arange(len(moves)), list(moves.keys()))
