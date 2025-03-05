@@ -683,8 +683,6 @@ def makeStackPlotWithRatio(
     stackedProcs,
     histName="nominal",
     unstacked=None,
-    fitresult=None,
-    prefit=False,
     xlabel="",
     ylabel=None,
     rlabel="Data/Pred.",
@@ -757,11 +755,6 @@ def makeStackPlotWithRatio(
         if xlim:
             h = h[complex(0, xlim[0]) : complex(0, xlim[1])]
 
-        # If plotting from combine, apply the action to the underlying hist.
-        # Don't do this for the generic case, as it screws up the ability to make multiple plots
-        if fitresult:
-            histInfo[k].hists[histName] = h
-
         if k != "Data":
             stack.append(h)
         else:
@@ -802,67 +795,6 @@ def makeStackPlotWithRatio(
         )
         ratio_axes = None
         ax2 = None
-
-    if fitresult:
-        import uproot
-
-        combine_result = uproot.open(fitresult)
-
-        fittype = "prefit" if prefit else "postfit"
-
-        # set histograms to prefit/postfit values
-        for p in to_read:
-
-            hname = f"expproc_{p}_{fittype}" if p != "Data" else "obs"
-            vals = combine_result[hname].to_hist().values()
-            if len(histInfo[p].hists[histName].values()) != len(vals):
-                raise ValueError(
-                    f"The size of the combine histogram ({(vals.shape)}) is not consistent with the xlim or input hist ({histInfo[p].hists[histName].shape})"
-                )
-
-            histInfo[p].hists[histName].values()[...] = vals
-            if p == "Data":
-                histInfo[p].hists[histName].variances()[...] = vals
-
-        # for postfit uncertaity bands
-        axis = histInfo[to_read[0]].hists[histName].axes[0].edges
-
-        # need to divide by bin width
-        binwidth = axis[1:] - axis[:-1]
-        hexp = combine_result[f"expfull_{fittype}"].to_hist()
-        if hexp.storage_type != hist.storage.Weight:
-            raise ValueError(
-                f"Did not find uncertainties in {fittype} hist. Make sure you run combinetf with --computeHistErrors!"
-            )
-        nom = hexp.values() / binwidth
-        std = np.sqrt(hexp.variances()) / binwidth
-
-        hatchstyle = "///"
-        ax1.fill_between(
-            axis,
-            np.append(nom + std, (nom + std)[-1]),
-            np.append(nom - std, (nom - std)[-1]),
-            step="post",
-            facecolor="none",
-            zorder=2,
-            hatch=hatchstyle,
-            edgecolor="k",
-            linewidth=0.0,
-            label="Uncertainty",
-        )
-
-        if add_ratio:
-            ax2.fill_between(
-                axis,
-                np.append((nom + std) / nom, ((nom + std) / nom)[-1]),
-                np.append((nom - std) / nom, ((nom - std) / nom)[-1]),
-                step="post",
-                facecolor="none",
-                zorder=2,
-                hatch=hatchstyle,
-                edgecolor="k",
-                linewidth=0.0,
-            )
 
     opts = dict(stack=not no_stack, flow=flow)
     optsr = opts.copy()  # no binwnorm for ratio axis
@@ -994,8 +926,7 @@ def makeStackPlotWithRatio(
 
         for i, (proc, style) in enumerate(zip(unstacked, linestyles)):
             unstack = histInfo[proc].hists[histName]
-            if not fitresult or proc not in to_read:
-                unstack = action(unstack)[select]
+            unstack = action(unstack)[select]
             if proc != "Data":
                 unstack = unstack * scale
             if len(scaleRatioUnstacked) > i:
