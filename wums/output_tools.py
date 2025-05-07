@@ -202,3 +202,18 @@ def write_index_and_log(
 ):
     write_indexfile(outpath, template_dir)
     write_logfile(outpath, logname, args, analysis_meta_info)
+
+def write_theory_corr_hist(
+    output_name, process, output_dict, basedir, args=None, file_meta_data=None
+):
+    outname = output_name
+    output_filename = f"{outname}Corr{process}.pkl.lz4"
+    logger.info(f"Write correction file {output_filename}")
+    result_dict = {
+        process: output_dict,
+        "meta_data": make_meta_info_dict(args, wd=basedir),
+    }
+    if file_meta_data is not None:
+        result_dict["file_meta_data"] = file_meta_data
+    with lz4.frame.open(output_filename, "wb") as f:
+        pickle.dump(result_dict, f, protocol=pickle.HIGHEST_PROTOCOL)
