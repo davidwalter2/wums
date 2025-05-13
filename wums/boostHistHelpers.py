@@ -453,10 +453,11 @@ def compatibleBins(edges1, edges2):
     return np.all(comparef(edges2))
 
 
-def rebinHistMultiAx(h, axes, edges=[], lows=[], highs=[]):
+def rebinHistMultiAx(h, axes, edges=[], lows=[], highs=[], lowsAndHighsById=False):
     # edges: lists of new edges or integers to merge bins, in case new edges are given the lows and highs will be ignored
     # lows: list of new lower boundaries
     # highs: list of new upper boundaries
+    # lowsAndHighsById: lows and highs are the bin ids rather than values to select
 
     sel = {}
     for ax, low, high, rebin in itertools.zip_longest(axes, lows, highs, edges):
@@ -466,12 +467,19 @@ def rebinHistMultiAx(h, axes, edges=[], lows=[], highs=[]):
         if rebin not in [None, []] and type(rebin) != int:
             h = rebinHist(h, ax, rebin)
         elif low is not None and high is not None:
-            # in case high edge is upper edge of last bin we need to manually set the upper limit
-            upper = hist.overflow if high == h.axes[ax].edges[-1] else complex(0, high)
-            logger.info(f"Restricting the axis '{ax}' to range [{low}, {high}]")
-            sel[ax] = slice(
-                complex(0, low), upper, hist.rebin(rebin) if rebin else None
-            )
+            if lowsAndHighsById:
+                upper = hist.overflow if high == h.axes[ax].size else int(high)
+                logger.info(f"Restricting the axis '{ax}' to bins [{int(low)}, {int(high)}]")
+                sel[ax] = slice(
+                    int(low), upper, hist.rebin(rebin) if rebin else None
+                )
+            else:
+                # in case high edge is upper edge of last bin we need to manually set the upper limit
+                upper = hist.overflow if high == h.axes[ax].edges[-1] else complex(0, high)
+                logger.info(f"Restricting the axis '{ax}' to range [{low}, {high}]")
+                sel[ax] = slice(
+                    complex(0, low), upper, hist.rebin(rebin) if rebin else None
+                )
         elif type(rebin) == int and rebin > 1:
             logger.info(f"Rebinning the axis '{ax}' by [{rebin}]")
             sel[ax] = slice(None, None, hist.rebin(rebin))
@@ -601,7 +609,7 @@ def rebinHist(h, axis_name, edges, flow=True):
     return hnew
 
 
-def get_rebin_actions(axes, ax_lim=[], ax_rebin=[], ax_absval=[], rename=False):
+def get_rebin_actions(axes, ax_lim=[], ax_rebin=[], ax_absval=[], rename=False, ax_lim_by_id=False):
     if len(ax_lim) % 2 or len(ax_lim) / 2 > len(axes) or len(ax_rebin) > len(axes):
         raise ValueError(
             "Inconsistent rebin or axlim arguments. axlim must be at most two entries per axis, and rebin at most one"
@@ -611,7 +619,7 @@ def get_rebin_actions(axes, ax_lim=[], ax_rebin=[], ax_absval=[], rename=False):
         actions.append(
             lambda h, axes=axes, rebins=ax_rebin, lows=ax_lim[::2], highs=ax_lim[
                 1::2
-            ]: rebinHistMultiAx(h, axes, rebins, lows, highs)
+            ]: rebinHistMultiAx(h, axes, rebins, lows, highs, lowsAndHighsById=ax_lim_by_id)
         )
 
     for i, (var, absval) in enumerate(itertools.zip_longest(axes, ax_absval)):
