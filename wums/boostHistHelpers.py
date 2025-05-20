@@ -1136,7 +1136,7 @@ def rssHistsMid(h, syst_axis, scale=1.0):
 
     return hUp, hDown
 
-def smooth_hist(h, smooth_ax_name, exclude_axes=[], start_bin=0):
+def smooth_hist(h, smooth_ax_name, exclude_axes=[], start_bin=0, end_bin=None):
 
     hnew = h.copy()
 
@@ -1146,19 +1146,26 @@ def smooth_hist(h, smooth_ax_name, exclude_axes=[], start_bin=0):
 
     # Reshape before looping over all other bins and smoothing along the relevant axis
     vals = smoothh.values().reshape(smooth_ax.size, -1)
-    # Rescale by binwidth
+    if not end_bin:
+        end_bin = vals.shape[0]
+
+    # Correct for bin width
     binw = smoothh.axes[smooth_ax_name].edges[1:]-smoothh.axes[smooth_ax_name].edges[:-1]
     vals = (vals.T/binw).T
+
     for b in range(vals.shape[-1]):
-        spl = make_smoothing_spline(smooth_ax.centers[start_bin:], vals[start_bin:,b])
-        vals[start_bin:,b] = spl(smooth_ax.centers[start_bin:])
+        spl = make_smoothing_spline(smooth_ax.centers[start_bin:end_bin], vals[start_bin:end_bin,b])
+        vals[start_bin:end_bin,b] = spl(smooth_ax.centers[start_bin:end_bin])
 
     #Recorrect for bin width
     vals = (vals.T*binw).T
 
     smoothh.values()[...] = vals.reshape(smoothh.shape)
 
-    # Reorder axes to match h
+    if not exclude_axes:
+        return smoothh.project(*hnew.axes.name)
+
+    # If some axis has been excluded, broadcast it back 
     smoothfac = divideHists(smoothh, hproj).project(*[ax for ax in h.axes.name if ax not in exclude_axes])
 
     # Broadcast over excluded axes
