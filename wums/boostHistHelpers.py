@@ -469,14 +469,11 @@ def rebinHistMultiAx(h, axes, edges=[], lows=[], highs=[]):
             # in case high edge is upper edge of last bin we need to manually set the upper limit
             # distinguish case with pure real or imaginary number (to select index or value, respectively)
             # in the former case, force casting into integer
-            if high.imag == 0:
-                high_real = int(high.real)
-                upper = hist.overflow if high_real == h.axes[ax].size else high_real
-            elif high.real == 0:
+            if isinstance(high, int):
+                upper = hist.overflow if high == h.axes[ax].size else high
+            elif isinstance(high, complex):
                 high_imag = high.imag
                 upper = hist.overflow if high_imag == h.axes[ax].edges[-1] else high
-            if low.imag == 0:
-                low = int(low.real)
             logger.info(f"Slicing the axis '{ax}' to [{low}, {upper}]")
             sel[ax] = slice(
                 low, upper, hist.rebin(rebin) if rebin else None
