@@ -683,6 +683,10 @@ def makeStackPlotWithRatio(
     stackedProcs,
     histName="nominal",
     unstacked=None,
+<<<<<<< HEAD
+=======
+    prefit=False,
+>>>>>>> e2cf7c3fadbd3c1339303ba9db2dc0824341bbfe
     xlabel="",
     ylabel=None,
     rlabel="Data/Pred.",
@@ -926,7 +930,12 @@ def makeStackPlotWithRatio(
 
         for i, (proc, style) in enumerate(zip(unstacked, linestyles)):
             unstack = histInfo[proc].hists[histName]
+<<<<<<< HEAD
             unstack = action(unstack)[select]
+=======
+            if proc not in to_read:
+                unstack = action(unstack)[select]
+>>>>>>> e2cf7c3fadbd3c1339303ba9db2dc0824341bbfe
             if proc != "Data":
                 unstack = unstack * scale
             if len(scaleRatioUnstacked) > i:
