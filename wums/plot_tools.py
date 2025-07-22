@@ -725,6 +725,7 @@ def makeStackPlotWithRatio(
     alpha=0.7,
     legPos="upper right",
     leg_padding="auto",
+    lowerLeg=True,
     lowerLegCols=2,
     lowerLegPos="upper right",
     lower_panel_variations=0,
@@ -1008,7 +1009,7 @@ def makeStackPlotWithRatio(
         text_size=legtext_size,
         padding_loc=leg_padding,
     )
-    if add_ratio:
+    if add_ratio and lowerLeg:
         addLegend(
             ax2,
             lowerLegCols,
