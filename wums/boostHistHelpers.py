@@ -455,8 +455,8 @@ def compatibleBins(edges1, edges2):
 
 def rebinHistMultiAx(h, axes, edges=[], lows=[], highs=[]):
     # edges: lists of new edges or integers to merge bins, in case new edges are given the lows and highs will be ignored
-    # lows: list of new lower boundaries
-    # highs: list of new upper boundaries
+    # lows: list of new lower boundaries or bins
+    # highs: list of new upper boundaries or bins
 
     sel = {}
     for ax, low, high, rebin in itertools.zip_longest(axes, lows, highs, edges):
@@ -467,10 +467,16 @@ def rebinHistMultiAx(h, axes, edges=[], lows=[], highs=[]):
             h = rebinHist(h, ax, rebin)
         elif low is not None and high is not None:
             # in case high edge is upper edge of last bin we need to manually set the upper limit
-            upper = hist.overflow if high == h.axes[ax].edges[-1] else complex(0, high)
-            logger.info(f"Restricting the axis '{ax}' to range [{low}, {high}]")
+            # distinguish case with pure real or imaginary number (to select index or value, respectively)
+            # in the former case, force casting into integer
+            if isinstance(high, int):
+                upper = hist.overflow if high == h.axes[ax].size else high
+            elif isinstance(high, complex):
+                high_imag = high.imag
+                upper = hist.overflow if high_imag == h.axes[ax].edges[-1] else high
+            logger.info(f"Slicing the axis '{ax}' to [{low}, {upper}]")
             sel[ax] = slice(
-                complex(0, low), upper, hist.rebin(rebin) if rebin else None
+                low, upper, hist.rebin(rebin) if rebin else None
             )
         elif type(rebin) == int and rebin > 1:
             logger.info(f"Rebinning the axis '{ax}' by [{rebin}]")
@@ -517,7 +523,14 @@ def disableAxisFlow(ax):
 
 
 def disableFlow(h, axis_name):
-    # disable the overflow and underflow bins of a single axes, while keeping the flow bins of other axes
+    # axes_name can be either string or a list of strings with the axis name(s) to disable the flow
+    if not isinstance(axis_name, str):
+        for var in axis_name:
+            if var in h.axes.name:
+                h = disableFlow(h, var)
+        return h
+
+    # disable the overflow and underflow bins of a single axis, while keeping the flow bins of other axes
     ax = h.axes[axis_name]
     ax_idx = [a.name for a in h.axes].index(axis_name)
     new_ax = disableAxisFlow(ax)
@@ -773,9 +786,9 @@ def unrolledHist(h, obs=None, binwnorm=None, add_flow_bins=False):
 
     if binwnorm:
         edges = (
-            plot_tools.extendEdgesByFlow(hproj) if add_flow_bins else hproj.axes.edges
+            extendEdgesByFlow(hproj) if add_flow_bins else hproj.axes.edges
         )
-        binwidths = np.outer(*[np.diff(e.squeeze()) for e in edges]).flatten()
+        binwidths = np.array(list(itertools.product(*[np.diff(e.squeeze()) for e in edges]))).prod(axis=1)
         scale = binwnorm / binwidths
     else:
         scale = 1
