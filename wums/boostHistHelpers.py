@@ -525,7 +525,14 @@ def disableAxisFlow(ax):
 
 
 def disableFlow(h, axis_name):
-    # disable the overflow and underflow bins of a single axes, while keeping the flow bins of other axes
+    # axes_name can be either string or a list of strings with the axis name(s) to disable the flow
+    if not isinstance(axis_name, str):
+        for var in axis_name:
+            if var in h.axes.name:
+                h = disableFlow(h, var)
+        return h
+
+    # disable the overflow and underflow bins of a single axis, while keeping the flow bins of other axes
     ax = h.axes[axis_name]
     ax_idx = [a.name for a in h.axes].index(axis_name)
     new_ax = disableAxisFlow(ax)
@@ -781,9 +788,9 @@ def unrolledHist(h, obs=None, binwnorm=None, add_flow_bins=False):
 
     if binwnorm:
         edges = (
-            plot_tools.extendEdgesByFlow(hproj) if add_flow_bins else hproj.axes.edges
+            extendEdgesByFlow(hproj) if add_flow_bins else hproj.axes.edges
         )
-        binwidths = np.outer(*[np.diff(e.squeeze()) for e in edges]).flatten()
+        binwidths = np.array(list(itertools.product(*[np.diff(e.squeeze()) for e in edges]))).prod(axis=1)
         scale = binwnorm / binwidths
     else:
         scale = 1

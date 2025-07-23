@@ -7,6 +7,7 @@ import socket
 import sys
 import textwrap
 import importlib
+import inspect
 
 import hist
 import matplotlib as mpl
@@ -609,7 +610,6 @@ def add_decor(
     ax, title, label=None, lumi=None, loc=2, data=True, text_size=None, no_energy=False
 ):
     text_size = get_textsize(ax, text_size)
-
     if title in ["CMS", "ATLAS", "LHCb", "ALICE"]:
         module = getattr(hep, title.lower())
         make_text = module.text
@@ -620,7 +620,7 @@ def add_decor(
                 if (
                     value is not None
                     and key not in kwargs
-                    and key in inspect.getfullargspec(label_base.exp_text).kwonlyargs
+                    and key in inspect.getfullargspec(hep.label.exp_text).kwonlyargs
                 ):
                     kwargs.setdefault(key, value)
             kwargs.setdefault("italic", (False, True, False))
@@ -632,7 +632,7 @@ def add_decor(
                 if (
                     value is not None
                     and key not in kwargs
-                    and key in inspect.getfullargspec(label_base.exp_text).kwonlyargs
+                    and key in inspect.getfullargspec(hep.label.exp_text).kwonlyargs
                 ):
                     kwargs.setdefault(key, value)
             kwargs.setdefault("italic", (False, True, False))
@@ -725,6 +725,7 @@ def makeStackPlotWithRatio(
     alpha=0.7,
     legPos="upper right",
     leg_padding="auto",
+    lowerLeg=True,
     lowerLegCols=2,
     lowerLegPos="upper right",
     lower_panel_variations=0,
@@ -1008,7 +1009,7 @@ def makeStackPlotWithRatio(
         text_size=legtext_size,
         padding_loc=leg_padding,
     )
-    if add_ratio:
+    if add_ratio and lowerLeg:
         addLegend(
             ax2,
             lowerLegCols,
@@ -1512,7 +1513,7 @@ def fix_axes(
     if noSci and not logy:
         redo_axis_ticks(ax1, "y")
     elif not logy:
-        ax1.ticklabel_format(style="sci", useMathText=True, axis="y", scilimits=(0, 0))
+        ax1.ticklabel_format(style="sci", useMathText=True, axis="y", scilimits=(-2, 2))
 
     if ratio_axes is not None:
         if not isinstance(ratio_axes, (list, tuple, np.ndarray)):
@@ -1797,12 +1798,14 @@ def read_axis_label(x, labels, with_unit=True):
         return x
 
 
-def get_axis_label(config, default_keys=None, label=None, is_bin=False):
+def get_axis_label(config, default_keys=None, label=None, is_bin=False, with_unit=True):
     if label is not None:
         return label
 
     if default_keys is None:
         return "Bin index"
+    elif isinstance(default_keys, str):
+        default_keys = [default_keys]
 
     labels = getattr(config, "axis_labels", {})
 
@@ -1810,6 +1813,6 @@ def get_axis_label(config, default_keys=None, label=None, is_bin=False):
         if is_bin:
             return f"{read_axis_label(default_keys[0], labels, False)} bin"
         else:
-            return read_axis_label(default_keys[0], labels)
+            return read_axis_label(default_keys[0], labels, with_unit)
     else:
         return f"({', '.join([read_axis_label(a, labels, False) for a in default_keys])}) bin"
