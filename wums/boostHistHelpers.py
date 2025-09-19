@@ -1163,7 +1163,7 @@ def smooth_hist(h, smooth_ax_name, exclude_axes=[], start_bin=0, end_bin=None):
         end_bin = vals.shape[0]
 
     # Correct for bin width
-    binw = smoothh.axes[smooth_ax_name].edges[1:]-smoothh.axes[smooth_ax_name].edges[:-1]
+    binw = np.diff(smoothh.axes[smooth_ax_name].edges)
     vals = (vals.T/binw).T
 
     for b in range(vals.shape[-1]):

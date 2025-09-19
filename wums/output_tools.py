@@ -181,7 +181,8 @@ def write_logfile(
             logf.write("\n" + "-" * 80 + "\n")
             if isinstance(v, dict):
                 logf.write(k)
-                logf.write(json.dumps(v, indent=5).replace("\\n", "\n"))
+                # String conversion needed for non-primitive types (e.g., complex number)
+                logf.write(json.dumps({a : str(b) for a,b in v.items()}, indent=5).replace("\\n", "\n"))
             else:
                 logf.write(f"{k}: {v}\n")
 
@@ -209,7 +210,7 @@ def write_lz4_pkl_output(
     if not outfile.endswith(".pkl.lz4"):
         outfile += ".pkl.lz4"
 
-    logger.info(f"Write correction file {outfile}")
+    logger.info(f"Write file {outfile}")
     result_dict = {
         outfolder : output_dict,
         "meta_data": make_meta_info_dict(args, wd=basedir),
