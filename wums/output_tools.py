@@ -165,6 +165,12 @@ def make_meta_info_dict(
     return meta_data
 
 
+def encode_complex(obj):
+    if isinstance(obj, complex):
+        return {"real": obj.real, "imag": obj.imag}
+    raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serializable")
+
+
 def write_logfile(
     outpath,
     logname,
@@ -181,7 +187,8 @@ def write_logfile(
             logf.write("\n" + "-" * 80 + "\n")
             if isinstance(v, dict):
                 logf.write(k)
-                logf.write(json.dumps(v, indent=5).replace("\\n", "\n"))
+                # String conversion needed for non-primitive types (e.g., complex number)
+                logf.write(json.dumps(v, default=encode_complex, indent=5).replace("\\n", "\n"))
             else:
                 logf.write(f"{k}: {v}\n")
 
@@ -209,7 +216,7 @@ def write_lz4_pkl_output(
     if not outfile.endswith(".pkl.lz4"):
         outfile += ".pkl.lz4"
 
-    logger.info(f"Write correction file {outfile}")
+    logger.info(f"Write file {outfile}")
     result_dict = {
         outfolder : output_dict,
         "meta_data": make_meta_info_dict(args, wd=basedir),
