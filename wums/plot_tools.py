@@ -1036,7 +1036,7 @@ def makeStackPlotWithRatio(
 def makePlotWithRatioToRef(
     hists,
     labels,
-    colors,
+    colors=None,
     hists_ratio=None,
     midratio_idxs=None,
     linestyles=[],
@@ -1093,9 +1093,14 @@ def makePlotWithRatioToRef(
     elif select is not None:
         hists_ratio = [h[select] for h in hists_ratio]
 
-    if len(hists_ratio) != len(labels) or len(hists_ratio) != len(colors):
+    if colors is None:
+        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"][:len(hists)]
+    if len(colors) < len(hists):
+        colors = colors + plt.rcParams["axes.prop_cycle"].by_key()["color"][:(len(hists) - len(colors))]
+
+    if len(hists_ratio) != len(labels):
         raise ValueError(
-            f"Number of hists ({len(hists_ratio)}), colors ({len(colors)}), and labels ({len(labels)}) must agree!"
+            f"Number of hists ({len(hists_ratio)}) and labels ({len(labels)}) must agree!"
         )
     ratio_hists = [
         hh.divideHists(
