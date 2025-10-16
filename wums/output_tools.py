@@ -202,3 +202,11 @@ def write_index_and_log(
 ):
     write_indexfile(outpath, template_dir)
     write_logfile(outpath, logname, args, analysis_meta_info)
+
+
+def get_filename_modifiers():
+    """Return dictionary of filename modifiers for plot outputs"""
+    return {
+        "density": lambda args: getattr(args, "density", False)
+        # add other shit selectively as is useful
+    }
