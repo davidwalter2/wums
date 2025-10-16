@@ -732,6 +732,7 @@ def makeStackPlotWithRatio(
     lower_leg_padding="auto",
     scaleRatioUnstacked=[],
     subplotsizes=[4, 2],
+    x_vertLines_edges=[],
 ):
     add_ratio = not (no_stack or no_ratio)
     if ylabel is None:
@@ -999,6 +1000,14 @@ def makeStackPlotWithRatio(
                 ax=ax2,
                 **optsr,
             )
+
+    if len(x_vertLines_edges):
+        h_inclusive = hh.sumHists(stack)
+        max_y = 1.05 * np.max(h_inclusive.values() + h_inclusive.variances() ** 0.5)
+        min_y = np.min(h_inclusive.values() - h_inclusive.variances() ** 0.5)
+        for i, x in enumerate(x_vertLines_edges):
+            ax1.plot([x, x], [min_y, max_y], linestyle="--", color="black")
+            ax2.plot([x, x], [rrange[0], rrange[1]], linestyle="--", color="black")
 
     addLegend(
         ax1,
