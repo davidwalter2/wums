@@ -1044,7 +1044,7 @@ def makeStackPlotWithRatio(
 def makePlotWithRatioToRef(
     hists,
     labels,
-    colors,
+    colors=None,
     hists_ratio=None,
     midratio_idxs=None,
     linestyles=[],
@@ -1080,6 +1080,7 @@ def makePlotWithRatioToRef(
     cms_label=None,
     cutoff=1e-6,
     only_ratio=False,
+    ratio_legend=True,
     width_scale=1,
     automatic_scale=True,
     base_size=8,
@@ -1101,9 +1102,14 @@ def makePlotWithRatioToRef(
     elif select is not None:
         hists_ratio = [h[select] for h in hists_ratio]
 
-    if len(hists_ratio) != len(labels) or len(hists_ratio) != len(colors):
+    if colors is None:
+        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"][:len(hists)]
+    if len(colors) < len(hists):
+        colors = colors + plt.rcParams["axes.prop_cycle"].by_key()["color"][:(len(hists) - len(colors))]
+
+    if len(hists_ratio) != len(labels):
         raise ValueError(
-            f"Number of hists ({len(hists_ratio)}), colors ({len(colors)}), and labels ({len(labels)}) must agree!"
+            f"Number of hists ({len(hists_ratio)}) and labels ({len(labels)}) must agree!"
         )
     ratio_hists = [
         hh.divideHists(
@@ -1238,7 +1244,7 @@ def makePlotWithRatioToRef(
             fill_between=fill_between,
             dataIdx=dataIdx,
             baseline=baseline,
-            add_legend=not only_ratio,
+            add_legend=ratio_legend and not only_ratio,
         )
         if midratio_hists:
             plotRatio(
