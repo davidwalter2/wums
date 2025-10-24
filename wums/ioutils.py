@@ -325,8 +325,12 @@ class H5Unpickler(pickle.Unpickler):
             raise pickle.UnpicklingError("unsupported persistent object")
 
 
-def pickle_dump_h5py(name, obj, h5out):
+def pickle_dump_h5py(name, obj, h5out, override=False):
     """Write an object to a new h5py group which will be created within the provided group."""
+    if name in h5out and override:
+        # If the group already exists, delete it first
+        del h5out[name]
+
     obj_group = h5out.create_group(name)
     try:
         obj_group.attrs["narf_h5py_pickle_protocol_version"] = CURRENT_PROTOCOL_VERSION
