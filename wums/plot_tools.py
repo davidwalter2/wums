@@ -467,6 +467,7 @@ def addLegend(
     reverse=True,
     labelcolor=None,
     padding_loc="auto",
+    title=None,
 ):
     handles, labels = ax.get_legend_handles_labels()
     if extra_entries_first:
@@ -497,6 +498,7 @@ def addLegend(
     text_size = get_textsize(ax, text_size)
     handler_map = get_custom_handler_map(custom_handlers)
     leg = ax.legend(
+        title=title,
         handles=handles,
         labels=labels,
         prop={"size": text_size},
@@ -508,6 +510,8 @@ def addLegend(
         markerfirst=markerfirst,
         labelcolor=labelcolor,
     )
+    if title is not None:
+        leg.set_title(title, prop={"size": text_size})
 
     if extra_text is not None:
         if extra_text_loc is None:
@@ -799,9 +803,8 @@ def makeStackPlotWithRatio(
 
     opts = dict(stack=not no_stack, flow=flow)
     optsr = opts.copy()  # no binwnorm for ratio axis
-    optsr["density"] = density
     if density:
-        opts["density"] = True
+        opts["density"] = True            
     else:
         opts["binwnorm"] = binwnorm
 
@@ -974,6 +977,10 @@ def makeStackPlotWithRatio(
                 extra_labels.append(histInfo[proc].label)
             if ratio_to_data and proc == "Data" or not add_ratio:
                 continue
+
+            if density:
+                unstack = hh.scaleHist(unstack, np.sum(ratio_ref.values())/np.sum(unstack.values()))
+
             stack_ratio = hh.divideHists(
                 unstack,
                 ratio_ref,
