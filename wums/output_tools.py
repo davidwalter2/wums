@@ -207,6 +207,7 @@ def write_index_and_log(
 def get_filename_modifiers():
     """Return dictionary of filename modifiers for plot outputs"""
     return {
-        "density": lambda args: getattr(args, "density", False)
+        "density": lambda args: getattr(args, "density", False),
+        "logy": lambda args: getattr(args, "logy", False)
         # add other shit selectively as is useful
     }
