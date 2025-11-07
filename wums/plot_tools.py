@@ -862,8 +862,8 @@ def makeStackPlotWithRatio(
             data_idx = unstacked.index("Data")
             linestyles[data_idx] = "None"
         linestyles = np.array(linestyles, dtype=object)
-        logger.debug("Number of linestyles", len(linestyles))
-        logger.debug("Length of unstacked", len(unstacked))
+        logger.debug(f"Number of linestyles {len(linestyles)}")
+        logger.debug(f"Length of unstacked {len(unstacked)}")
         if unstacked_linestyles:
             linestyles[data_idx + 1 : data_idx + 1 + len(unstacked_linestyles)] = (
                 unstacked_linestyles
