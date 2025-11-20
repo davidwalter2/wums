@@ -829,6 +829,7 @@ def makeStackPlotWithRatio(
         )
         stack = [s * scale for s in stack]
 
+    
     hep.histplot(
         stack,
         histtype="fill" if not no_fill else "step",
@@ -974,6 +975,8 @@ def makeStackPlotWithRatio(
                 extra_labels.append(histInfo[proc].label)
             if ratio_to_data and proc == "Data" or not add_ratio:
                 continue
+            if xlim:
+                unstack = unstack[complex(0, xlim[0]) : complex(0, xlim[1])]
             stack_ratio = hh.divideHists(
                 unstack,
                 ratio_ref,
@@ -1556,6 +1559,8 @@ def redo_axis_ticks(ax, axlabel, no_labels=False):
     fixedloc = ticker.FixedLocator(
         autoloc.tick_values(*getattr(ax, f"get_{axlabel}lim")())
     )
+    if ax.get_xscale() == 'log':
+        fixedloc = ticker.LogLocator(base=10, numticks=5)
     getattr(ax, f"{axlabel}axis").set_major_locator(fixedloc)
     ticks = getattr(ax, f"get_{axlabel}ticks")()
     labels = [format_axis_num(x, ticks[-1]) for x in ticks] if not no_labels else []
