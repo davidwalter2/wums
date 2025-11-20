@@ -61,7 +61,7 @@ def broadcastSystHist(h1, h2, flow=True, by_ax_name=True):
     # move back to original order
     new_vals = np.moveaxis(new_vals, np.arange(len(moves)), list(moves.keys()))
 
-    if new_vals.shape != h2.values(flow=flow).shape:
+    if new_vals.shape != s2:
         raise ValueError(
             f"Broadcast shape {new_vals.shape} (from h1.shape={h1.values(flow=flow).shape}, axes={h1.axes.name}) "
             f"does not match desired shape {h2.view(flow=flow).shape} (axes={h2.axes.name})"
@@ -487,6 +487,7 @@ def rebinHistMultiAx(h, axes, edges=[], lows=[], highs=[]):
         elif type(rebin) == int and rebin > 1:
             logger.info(f"Rebinning the axis '{ax}' by [{rebin}]")
             sel[ax] = slice(None, None, hist.rebin(rebin))
+
     return h[sel] if len(sel) > 0 else h
 
 
