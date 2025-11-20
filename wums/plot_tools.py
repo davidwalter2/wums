@@ -1,13 +1,7 @@
-import datetime
-import json
-import math
-import pathlib
-import shutil
-import socket
-import sys
-import textwrap
 import importlib
 import inspect
+import math
+import textwrap
 
 import hist
 import matplotlib as mpl
@@ -23,7 +17,7 @@ from matplotlib.patches import Polygon
 from matplotlib.ticker import StrMethodFormatter
 
 from wums import boostHistHelpers as hh
-from wums import ioutils, logging
+from wums import logging
 
 hep.style.use(hep.style.ROOT)
 
@@ -467,6 +461,7 @@ def addLegend(
     reverse=True,
     labelcolor=None,
     padding_loc="auto",
+    title=None,
 ):
     handles, labels = ax.get_legend_handles_labels()
     if extra_entries_first:
@@ -497,6 +492,7 @@ def addLegend(
     text_size = get_textsize(ax, text_size)
     handler_map = get_custom_handler_map(custom_handlers)
     leg = ax.legend(
+        title=title,
         handles=handles,
         labels=labels,
         prop={"size": text_size},
@@ -508,6 +504,8 @@ def addLegend(
         markerfirst=markerfirst,
         labelcolor=labelcolor,
     )
+    if title is not None:
+        leg.set_title(title, prop={"size": text_size})
 
     if extra_text is not None:
         if extra_text_loc is None:
@@ -615,6 +613,7 @@ def add_decor(
         make_text = module.text
         make_label = module.label
     else:
+
         def make_text(text=None, **kwargs):
             for key, value in dict(hep.rcParams.text._get_kwargs()).items():
                 if (
@@ -651,7 +650,7 @@ def add_decor(
             data=data,
             loc=loc,
         )
-    
+
     # else:
     #     if loc==0:
     #         # above frame
@@ -666,7 +665,7 @@ def add_decor(
     #         x = 0.05
     #         y = 0.88
     #     elif loc==2:
-    #         #     
+    #         #
     #     ax.text(
     #         x,
     #         y,
@@ -677,6 +676,7 @@ def add_decor(
     #     )
     #     if label is not None:
     #         ax.text(0.05, 0.80, label, transform=ax.transAxes, fontstyle="italic")
+
 
 def makeStackPlotWithRatio(
     histInfo,
@@ -732,6 +732,7 @@ def makeStackPlotWithRatio(
     lower_leg_padding="auto",
     scaleRatioUnstacked=[],
     subplotsizes=[4, 2],
+    x_vertLines_edges=[],
 ):
     add_ratio = not (no_stack or no_ratio)
     if ylabel is None:
@@ -799,9 +800,8 @@ def makeStackPlotWithRatio(
 
     opts = dict(stack=not no_stack, flow=flow)
     optsr = opts.copy()  # no binwnorm for ratio axis
-    optsr["density"] = density
     if density:
-        opts["density"] = True
+        opts["density"] = True            
     else:
         opts["binwnorm"] = binwnorm
 
@@ -822,7 +822,7 @@ def makeStackPlotWithRatio(
             for x in (data_hist.sum(), hh.sumHists(stack).sum())
         ]
         scale = vals[0] / vals[1]
-        unc = scale * (varis[0] / vals[0] ** 2 + varis[1] / vals[1] ** 2)**0.5
+        unc = scale * (varis[0] / vals[0] ** 2 + varis[1] / vals[1] ** 2) ** 0.5
         ndigits = -math.floor(math.log10(abs(unc))) + 1
         logger.info(
             f"Rescaling all processes by {round(scale,ndigits)} +/- {round(unc,ndigits)} to match data norm"
@@ -977,6 +977,9 @@ def makeStackPlotWithRatio(
                 continue
             if xlim:
                 unstack = unstack[complex(0, xlim[0]) : complex(0, xlim[1])]
+            if density:
+                unstack = hh.scaleHist(unstack, np.sum(ratio_ref.values())/np.sum(unstack.values()))
+
             stack_ratio = hh.divideHists(
                 unstack,
                 ratio_ref,
@@ -1002,6 +1005,14 @@ def makeStackPlotWithRatio(
                 ax=ax2,
                 **optsr,
             )
+
+    if len(x_vertLines_edges):
+        h_inclusive = hh.sumHists(stack)
+        max_y = 1.05 * np.max(h_inclusive.values() + h_inclusive.variances() ** 0.5)
+        min_y = np.min(h_inclusive.values() - h_inclusive.variances() ** 0.5)
+        for x in x_vertLines_edges:
+            ax1.plot([x, x], [min_y, max_y], linestyle="--", color="black")
+            ax2.plot([x, x], [rrange[0], rrange[1]], linestyle="--", color="black")
 
     addLegend(
         ax1,
@@ -1040,7 +1051,7 @@ def makeStackPlotWithRatio(
 def makePlotWithRatioToRef(
     hists,
     labels,
-    colors,
+    colors=None,
     hists_ratio=None,
     midratio_idxs=None,
     linestyles=[],
@@ -1098,9 +1109,19 @@ def makePlotWithRatioToRef(
     elif select is not None:
         hists_ratio = [h[select] for h in hists_ratio]
 
-    if len(hists_ratio) != len(labels) or len(hists_ratio) != len(colors):
+    if colors is None:
+        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"][: len(hists)]
+    if len(colors) < len(hists):
+        colors = (
+            colors
+            + plt.rcParams["axes.prop_cycle"].by_key()["color"][
+                : (len(hists) - len(colors))
+            ]
+        )
+
+    if len(hists_ratio) != len(labels):
         raise ValueError(
-            f"Number of hists ({len(hists_ratio)}), colors ({len(colors)}), and labels ({len(labels)}) must agree!"
+            f"Number of hists ({len(hists_ratio)}) and labels ({len(labels)}) must agree!"
         )
     ratio_hists = [
         hh.divideHists(
@@ -1814,7 +1835,7 @@ def get_axis_label(config, default_keys=None, label=None, is_bin=False, with_uni
 
     labels = getattr(config, "axis_labels", {})
 
-    if len(default_keys) == 1:        
+    if len(default_keys) == 1:
         if is_bin:
             return f"{read_axis_label(default_keys[0], labels, False)} bin"
         else:

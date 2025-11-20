@@ -194,10 +194,10 @@ def multiplyWithVariance(vals1, vals2, vars1=None, vars2=None):
     return outvals, outvars
 
 
-def multiplyHists(h1, h2, allowBroadcast=True, createNew=True, flow=True, by_ax_name=False):
+def multiplyHists(h1, h2, allowBroadcast=True, createNew=True, flow=True, broadcast_by_ax_name=True):
     if allowBroadcast:
-        h1 = broadcastSystHist(h1, h2, flow=flow, by_ax_name=by_ax_name)
-        h2 = broadcastSystHist(h2, h1, flow=flow, by_ax_name=by_ax_name)
+        h1 = broadcastSystHist(h1, h2, flow=flow, by_ax_name=broadcast_by_ax_name)
+        h2 = broadcastSystHist(h2, h1, flow=flow, by_ax_name=broadcast_by_ax_name)
 
     if (
         h1.storage_type == hist.storage.Double
@@ -409,6 +409,10 @@ def normalize(h, scale=1e6, createNew=True, flow=True):
     return scaleHist(h, scale, createNew, flow)
 
 
+def renameAxis(h, axis_name, new_name):
+    h.axes[axis_name].__dict__['name'] = new_name
+
+
 def makeAbsHist(h, axis_name, rename=True):
     ax = h.axes[axis_name]
     axidx = list(h.axes).index(ax)
@@ -508,9 +512,9 @@ def mirrorAxes(h, axes, flow=True):
     return h
 
 
-def disableAxisFlow(ax):
+def disableAxisFlow(ax, under=False, over=False):
     if isinstance(ax, hist.axis.Integer):
-        args = [ax.edges[0], ax.edges[-1]]
+        args = [int(ax.edges[0]), int(ax.edges[-1])]
     elif isinstance(ax, hist.axis.Regular):
         args = [ax.size, ax.edges[0], ax.edges[-1]]
     else:
@@ -519,13 +523,13 @@ def disableAxisFlow(ax):
     return type(ax)(
         *args,
         name=ax.name,
-        overflow=False,
-        underflow=False,
+        overflow=over,
+        underflow=under,
         circular=ax.traits.circular,
     )
 
 
-def disableFlow(h, axis_name):
+def disableFlow(h, axis_name, under=False, over=False):
     # axes_name can be either string or a list of strings with the axis name(s) to disable the flow
     if not isinstance(axis_name, str):
         for var in axis_name:
@@ -536,7 +540,7 @@ def disableFlow(h, axis_name):
     # disable the overflow and underflow bins of a single axis, while keeping the flow bins of other axes
     ax = h.axes[axis_name]
     ax_idx = [a.name for a in h.axes].index(axis_name)
-    new_ax = disableAxisFlow(ax)
+    new_ax = disableAxisFlow(ax, under=under, over=over)
     axes = list(h.axes)
     axes[ax_idx] = new_ax
     hnew = hist.Hist(*axes, name=h.name, storage=h.storage_type())
@@ -544,7 +548,7 @@ def disableFlow(h, axis_name):
         (
             slice(None)
             if i != ax_idx
-            else slice(ax.traits.underflow, new_ax.size + ax.traits.underflow)
+            else slice(ax.traits.underflow * (not under), ax.size + ax.traits.underflow + ax.traits.overflow * over)
         )
         for i in range(len(axes))
     ]
