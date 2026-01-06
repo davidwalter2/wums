@@ -644,7 +644,7 @@ def add_decor(
         make_label(
             ax=ax,
             lumi=lumi,
-            lumi_format="{0:.3g}",
+            lumi_format="{}" if isinstance(lumi, (list, tuple, np.ndarray)) else "{0:.3g}",
             fontsize=text_size,
             label=label,
             data=data,
