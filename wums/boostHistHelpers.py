@@ -528,9 +528,27 @@ def disableAxisFlow(ax, under=False, over=False):
         circular=ax.traits.circular,
     )
 
+def enableAxisFlow(ax, overflow=True, underflow=True):
+    if isinstance(ax, hist.axis.Integer):
+        args = [ax.edges[0], ax.edges[-1]]
+    elif isinstance(ax, hist.axis.Regular):
+        args = [ax.size, ax.edges[0], ax.edges[-1]]
+    else:
+        args = [ax.edges]
 
-def disableFlow(h, axis_name, under=False, over=False):
-    # axes_name can be either string or a list of strings with the axis name(s) to disable the flow
+    return type(ax)(
+        *args,
+        name=ax.name,
+        overflow=overflow,
+        underflow=underflow,
+        circular=ax.traits.circular,
+    )
+
+def disableFlow(h, axis_name=None, under=False, over=False):
+    # axes_name can be 'None' for all axes, a string or a list of strings with the axis name(s) to disable the flow
+    if axis_name is None:
+        axis_name = [n for n in h.axes.name]
+    
     if not isinstance(axis_name, str):
         for var in axis_name:
             if var in h.axes.name:
