@@ -1007,7 +1007,7 @@ def expand_hist_by_duplicate_axis(
     ref_ax_idx = axes.name.index(ref_ax_name)
     ref_ax = axes[ref_ax_name]
     new_ax = copy.deepcopy(ref_ax)
-    new_ax._ax.metadata["name"] = new_ax_name
+    new_ax._raw_metadata["name"] = new_ax_name
 
     if put_trailing:
         new_axes = [*axes, new_ax]
