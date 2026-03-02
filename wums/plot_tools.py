@@ -1079,16 +1079,8 @@ def makePlotWithRatioToRef(
         max_y = -np.inf
         for rh in rhists:
             values = np.asarray(rh.values(flow=False))
-            if values.size == 0:
-                continue
-            variances = rh.variances(flow=False)
-            if variances is not None:
-                errors = np.sqrt(np.where(variances >= 0, variances, np.nan))
-                lows = values - errors
-                highs = values + errors
-            else:
-                lows = values
-                highs = values
+            lows = values
+            highs = values
             valid_lows = lows[np.isfinite(lows)]
             valid_highs = highs[np.isfinite(highs)]
             if valid_lows.size == 0 or valid_highs.size == 0:
