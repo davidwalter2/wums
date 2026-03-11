@@ -257,6 +257,7 @@ class BandFilledHandler:
             color=orig_handle.get_edgecolor(),
             lw=linewidth_scale * orig_handle.get_linewidth(),
             linestyle=orig_handle.get_linestyle(),
+            alpha=1.0,
         )
         line2 = Line2D(
             [x0, x0 + width],
@@ -264,6 +265,7 @@ class BandFilledHandler:
             color=orig_handle.get_edgecolor(),
             lw=linewidth_scale * orig_handle.get_linewidth(),
             linestyle=orig_handle.get_linestyle(),
+            alpha=1.0,
         )
         # Create the filled area between the lines using a polygon
         fill_coords = [
@@ -272,7 +274,15 @@ class BandFilledHandler:
             [x0 + width, y0 + height],
             [x0, y0 + height],
         ]
-        fill = Polygon(fill_coords, color=orig_handle.get_facecolor(), alpha=0.3)
+        alpha = getattr(orig_handle, "get_alpha", lambda: 1.0)()
+        if alpha is None:
+            alpha = 0.3
+        fill = Polygon(
+            fill_coords,
+            facecolor=orig_handle.get_facecolor(),
+            edgecolor="none",
+            alpha=alpha,
+        )
 
         handlebox.add_artist(fill)
         handlebox.add_artist(line1)
