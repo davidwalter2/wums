@@ -274,7 +274,7 @@ class BandFilledHandler:
             [x0 + width, y0 + height],
             [x0, y0 + height],
         ]
-        alpha = getattr(orig_handle, "get_alpha", lambda: 1.0)()
+        alpha = getattr(orig_handle, "get_alpha", lambda: 0.3)()
         if alpha is None:
             alpha = 0.3
         fill = Polygon(
