@@ -225,3 +225,11 @@ def write_lz4_pkl_output(
         result_dict["file_meta_data"] = file_meta_data
     with lz4.frame.open(outfile, "wb") as f:
         pickle.dump(result_dict, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def get_filename_modifiers():
+    """Return dictionary of filename modifiers for plot outputs"""
+    return {
+        "density": lambda args: getattr(args, "density", False),
+        "logy": lambda args: getattr(args, "logy", False)
+    } # add whatever else is useful...
