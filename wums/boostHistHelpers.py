@@ -472,14 +472,7 @@ def rebinHistMultiAx(h, axes, edges=[], lows=[], highs=[]):
         if rebin not in [None, []] and type(rebin) != int:
             h = rebinHist(h, ax, rebin)
         elif low is not None and high is not None:
-            # in case high edge is upper edge of last bin we need to manually set the upper limit
-            # distinguish case with pure real or imaginary number (to select index or value, respectively)
-            # in the former case, force casting into integer
-            if isinstance(high, int):
-                upper = hist.overflow if high == h.axes[ax].size else high
-            elif isinstance(high, complex):
-                high_imag = high.imag
-                upper = hist.overflow if high_imag == h.axes[ax].edges[-1] else high
+            upper = get_hist_slice_upper(h, ax, high)
             logger.info(f"Slicing the axis '{ax}' to [{low}, {upper}]")
             sel[ax] = slice(
                 low, upper, hist.rebin(rebin) if rebin else None
@@ -489,6 +482,16 @@ def rebinHistMultiAx(h, axes, edges=[], lows=[], highs=[]):
             sel[ax] = slice(None, None, hist.rebin(rebin))
 
     return h[sel] if len(sel) > 0 else h
+
+
+def get_hist_slice_upper(h, axis, high):
+    # Convert inclusive upper bounds at the last bin edge into overflow,
+    # matching the UHI slicing convention used throughout this codebase.
+    if isinstance(high, int):
+        return hist.overflow if high == h.axes[axis].size else high
+    if isinstance(high, complex):
+        return hist.overflow if high.imag == h.axes[axis].edges[-1] else high
+    return high
 
 
 def mirrorAxis(h, axis, flow=True):
