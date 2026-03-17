@@ -232,5 +232,4 @@ def get_filename_modifiers():
     return {
         "density": lambda args: getattr(args, "density", False),
         "logy": lambda args: getattr(args, "logy", False)
-        # add other shit selectively as is useful
-    }
+    } # add whatever else is useful...
