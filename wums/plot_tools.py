@@ -286,6 +286,7 @@ class BandFilledHandler:
             color=orig_handle.get_edgecolor(),
             lw=linewidth_scale * orig_handle.get_linewidth(),
             linestyle=orig_handle.get_linestyle(),
+            alpha=1.0,
         )
         line2 = Line2D(
             [x0, x0 + width],
@@ -293,6 +294,7 @@ class BandFilledHandler:
             color=orig_handle.get_edgecolor(),
             lw=linewidth_scale * orig_handle.get_linewidth(),
             linestyle=orig_handle.get_linestyle(),
+            alpha=1.0,
         )
         # Create the filled area between the lines using a polygon
         fill_coords = [
@@ -301,7 +303,15 @@ class BandFilledHandler:
             [x0 + width, y0 + height],
             [x0, y0 + height],
         ]
-        fill = Polygon(fill_coords, color=orig_handle.get_facecolor(), alpha=0.3)
+        alpha = getattr(orig_handle, "get_alpha", lambda: 0.3)()
+        if alpha is None:
+            alpha = 0.3
+        fill = Polygon(
+            fill_coords,
+            facecolor=orig_handle.get_facecolor(),
+            edgecolor="none",
+            alpha=alpha,
+        )
 
         handlebox.add_artist(fill)
         handlebox.add_artist(line1)
@@ -867,8 +877,8 @@ def makeStackPlotWithRatio(
             data_idx = unstacked.index("Data")
             linestyles[data_idx] = "None"
         linestyles = np.array(linestyles, dtype=object)
-        logger.debug("Number of linestyles", len(linestyles))
-        logger.debug("Length of unstacked", len(unstacked))
+        logger.debug(f"Number of linestyles {len(linestyles)}")
+        logger.debug(f"Length of unstacked {len(unstacked)}")
         if unstacked_linestyles:
             linestyles[data_idx + 1 : data_idx + 1 + len(unstacked_linestyles)] = (
                 unstacked_linestyles
@@ -1105,6 +1115,27 @@ def makePlotWithRatioToRef(
     swap_ratio_panels=False,
     select={},
 ):
+    def _auto_ratio_range(rhists, pad_frac=0.05):
+        min_y = np.inf
+        max_y = -np.inf
+        for rh in rhists:
+            values = np.asarray(rh.values(flow=False))
+            lows = values
+            highs = values
+            valid_lows = lows[np.isfinite(lows)]
+            valid_highs = highs[np.isfinite(highs)]
+            if valid_lows.size == 0 or valid_highs.size == 0:
+                continue
+            min_y = min(min_y, float(np.min(valid_lows)))
+            max_y = max(max_y, float(np.max(valid_highs)))
+
+        if not np.isfinite(min_y) or not np.isfinite(max_y):
+            return None
+
+        half_width = max(abs(max_y - 1.0), abs(1.0 - min_y))
+        half_width = max(half_width * (1.0 + max(0.0, pad_frac)), 0.005)
+        return [1.0 - half_width, 1.0 + half_width]
+
     if select:
         hists = [h[select] for h in hists]
 
@@ -1283,6 +1314,16 @@ def makePlotWithRatioToRef(
                 baseline=baseline,
                 add_legend=False,
             )
+
+    if autorrange not in (None, False):
+        pad_frac = 0.05 if autorrange is True else float(autorrange)
+        auto_main = _auto_ratio_range(ratio_hists, pad_frac=pad_frac)
+        if auto_main is not None:
+            ax2.set_ylim(*auto_main)
+        if midratio_hists:
+            auto_mid = _auto_ratio_range(midratio_hists, pad_frac=pad_frac)
+            if auto_mid is not None:
+                ratio_axes[midratio_axes_idx].set_ylim(*auto_mid)
 
     if not only_ratio:
         addLegend(
