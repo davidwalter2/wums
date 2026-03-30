@@ -177,6 +177,35 @@ def figureWithRatio(
         return fig, xax
 
 
+class LineBandPolygon(Polygon):
+    pass
+
+
+class LineBandHandler:
+    def legend_artist(
+        self, legend, orig_handle, fontsize, handlebox, linewidth_scale=1.0
+    ):
+        x0, y0 = handlebox.xdescent, handlebox.ydescent
+        width, height = handlebox.width, handlebox.height
+        fill_coords = [
+            [x0, y0],
+            [x0 + width, y0],
+            [x0 + width, y0 + height],
+            [x0, y0 + height],
+        ]
+        fill = Polygon(fill_coords, color=orig_handle.get_facecolor())
+        line = Line2D(
+            [x0, x0 + width],
+            [y0 + height * 0.5, y0 + height * 0.5],
+            color=orig_handle.get_edgecolor(),
+            lw=linewidth_scale * 1.5,
+            linestyle=orig_handle.get_linestyle(),
+        )
+        handlebox.add_artist(fill)
+        handlebox.add_artist(line)
+        return [fill, line]
+
+
 class StackedLineHandler:
     def legend_artist(
         self, legend, orig_handle, fontsize, handlebox, linewidth_scale=1.0
@@ -424,6 +453,8 @@ def get_custom_handler_map(keys):
             handler_map[Polygon] = DoubleBandHandler()
         elif key == "tripleband":
             handler_map[Polygon] = TripleBandHandler()
+        elif key == "lineband":
+            handler_map[LineBandPolygon] = LineBandHandler()
     return handler_map
 
 
