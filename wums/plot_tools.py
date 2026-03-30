@@ -332,6 +332,11 @@ class DoubleBandHandler(HandlerPatch):
         trans,
         linewidth_scale=1.0,
     ):
+        outer_color = getattr(orig_handle, "outer_color", orig_handle.get_facecolor())
+        outer_alpha = getattr(orig_handle, "outer_alpha", orig_handle.get_alpha())
+        inner_color = getattr(orig_handle, "inner_color", orig_handle.get_facecolor())
+        inner_alpha = getattr(orig_handle, "inner_alpha", orig_handle.get_alpha())
+
         # Create the outer polygon
         polygon_outer = Polygon(
             [
@@ -340,8 +345,8 @@ class DoubleBandHandler(HandlerPatch):
                 [xdescent + width, ydescent + height],
                 [xdescent, ydescent + height],
             ],
-            color=orig_handle.get_facecolor(),
-            alpha=orig_handle.get_alpha(),
+            color=outer_color,
+            alpha=outer_alpha,
         )
         # Create the inner polygon (narrower)
         margin = 0.25 * width
@@ -352,8 +357,8 @@ class DoubleBandHandler(HandlerPatch):
                 [xdescent + width - margin, ydescent + height],
                 [xdescent + margin, ydescent + height],
             ],
-            color=orig_handle.get_facecolor(),
-            alpha=orig_handle.get_alpha(),
+            color=inner_color,
+            alpha=inner_alpha,
         )
         line = Line2D(
             [xdescent + width / 2, xdescent + width / 2],
