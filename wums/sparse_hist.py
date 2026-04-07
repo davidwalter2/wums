@@ -150,28 +150,35 @@ class SparseHist:
         import scipy.sparse
 
         if flow:
+            target_size = self._size
+        else:
+            no_flow_shape = tuple(int(len(ax)) for ax in self._axes)
+            target_size = int(np.prod(no_flow_shape))
+
+        # Use int64 indices when the flat size exceeds the int32 range, since
+        # scipy.sparse CSR indices default to int32 and would silently overflow.
+        idx_dtype = np.int64 if target_size > np.iinfo(np.int32).max else np.int32
+
+        if flow:
             sort_order = np.argsort(self._flat_indices)
-            sorted_idx = self._flat_indices[sort_order].astype(np.int32)
+            sorted_idx = self._flat_indices[sort_order].astype(idx_dtype)
             sorted_vals = self._values[sort_order].astype(dtype)
-            indptr = np.array([0, len(sorted_vals)], dtype=np.int32)
+            indptr = np.array([0, len(sorted_vals)], dtype=idx_dtype)
             return scipy.sparse.csr_array(
                 (sorted_vals, sorted_idx, indptr), shape=(1, self._size)
             )
 
         # No-flow extraction: filter entries in flow bins, shift remaining to
         # the no-flow layout.
-        no_flow_shape = tuple(int(len(ax)) for ax in self._axes)
-        no_flow_size = int(np.prod(no_flow_shape))
-
         if len(self._flat_indices) == 0:
-            indptr = np.array([0, 0], dtype=np.int32)
+            indptr = np.array([0, 0], dtype=idx_dtype)
             return scipy.sparse.csr_array(
                 (
                     np.zeros(0, dtype=dtype),
-                    np.zeros(0, dtype=np.int32),
+                    np.zeros(0, dtype=idx_dtype),
                     indptr,
                 ),
-                shape=(1, no_flow_size),
+                shape=(1, target_size),
             )
 
         multi = np.unravel_index(self._flat_indices, self._dense_shape)
@@ -193,11 +200,11 @@ class SparseHist:
 
         new_values = self._values[mask]
         sort_order = np.argsort(new_flat)
-        sorted_idx = new_flat[sort_order].astype(np.int32)
+        sorted_idx = new_flat[sort_order].astype(idx_dtype)
         sorted_vals = new_values[sort_order].astype(dtype)
-        indptr = np.array([0, len(sorted_vals)], dtype=np.int32)
+        indptr = np.array([0, len(sorted_vals)], dtype=idx_dtype)
         return scipy.sparse.csr_array(
-            (sorted_vals, sorted_idx, indptr), shape=(1, no_flow_size)
+            (sorted_vals, sorted_idx, indptr), shape=(1, target_size)
         )
 
     def __getitem__(self, slice_dict):
