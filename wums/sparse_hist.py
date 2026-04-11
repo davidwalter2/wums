@@ -207,6 +207,24 @@ class SparseHist:
             (sorted_vals, sorted_idx, indptr), shape=(1, target_size)
         )
 
+    def __mul__(self, other):
+        """Multiply all stored values by a scalar, returning a new SparseHist."""
+        if not isinstance(other, (int, float, np.integer, np.floating)):
+            return NotImplemented
+        return SparseHist._from_flat(
+            self._flat_indices, self._values * other, self._axes, self._size
+        )
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def __imul__(self, other):
+        """In-place scalar multiplication."""
+        if not isinstance(other, (int, float, np.integer, np.floating)):
+            return NotImplemented
+        self._values[...] *= other
+        return self
+
     def __getitem__(self, slice_dict):
         """Slice along one or more axes by integer index, returning a new SparseHist.
 
