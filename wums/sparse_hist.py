@@ -43,6 +43,10 @@ class SparseHist:
         Sparse storage. Total element count must equal the product of axis extents.
     axes : sequence of hist axes
         Axes describing the dense N-D shape. Each axis must have ``.name``.
+    metadata : optional
+        Arbitrary user metadata, accessible (and assignable) via the
+        ``.metadata`` attribute. Defaults to ``None``, matching the
+        ``hist.Hist`` interface.
     """
 
     @staticmethod
@@ -53,10 +57,11 @@ class SparseHist:
             return 1
         return 0
 
-    def __init__(self, data, axes):
+    def __init__(self, data, axes, *, metadata=None):
         self._axes = _AxesTuple(axes)
         self._dense_shape = tuple(int(a.extent) for a in self._axes)
         self._size = int(np.prod(self._dense_shape))
+        self.metadata = metadata
 
         if not (hasattr(data, "toarray") and hasattr(data, "tocoo")):
             raise TypeError(
@@ -83,7 +88,7 @@ class SparseHist:
         self._values = np.asarray(coo.data)
 
     @classmethod
-    def _from_flat(cls, flat_indices, values, axes, size):
+    def _from_flat(cls, flat_indices, values, axes, size, metadata=None):
         """Construct directly from flat indices and values, bypassing __init__ checks."""
         obj = cls.__new__(cls)
         obj._axes = _AxesTuple(axes)
@@ -91,6 +96,7 @@ class SparseHist:
         obj._size = int(size)
         obj._flat_indices = np.asarray(flat_indices, dtype=np.int64)
         obj._values = np.asarray(values)
+        obj.metadata = metadata
         return obj
 
     @property
@@ -212,7 +218,11 @@ class SparseHist:
         if not isinstance(other, (int, float, np.integer, np.floating)):
             return NotImplemented
         return SparseHist._from_flat(
-            self._flat_indices, self._values * other, self._axes, self._size
+            self._flat_indices,
+            self._values * other,
+            self._axes,
+            self._size,
+            metadata=self.metadata,
         )
 
     def __rmul__(self, other):
@@ -273,4 +283,6 @@ class SparseHist:
             new_flat = np.ravel_multi_index(new_multi, new_dense_shape)
 
         new_values = self._values[mask]
-        return SparseHist._from_flat(new_flat, new_values, axes_keep, new_size)
+        return SparseHist._from_flat(
+            new_flat, new_values, axes_keep, new_size, metadata=self.metadata
+        )
