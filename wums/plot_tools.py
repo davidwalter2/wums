@@ -690,7 +690,9 @@ def add_decor(
         make_label(
             ax=ax,
             lumi=lumi,
-            lumi_format="{}" if isinstance(lumi, (list, tuple, np.ndarray)) else "{0:.3g}",
+            lumi_format=(
+                "{}" if isinstance(lumi, (list, tuple, np.ndarray)) else "{0:.3g}"
+            ),
             text=label,
             data=data,
             loc=loc,
@@ -740,6 +742,7 @@ def makeStackPlotWithRatio(
     noSci=False,
     logoPos=2,
     width_scale=1.0,
+    automatic_scale=True,
     linewidth=2,
     alpha=0.7,
     legPos="upper right",
@@ -797,6 +800,7 @@ def makeStackPlotWithRatio(
             title_padding=title_padding,
             bin_density=bin_density,
             width_scale=width_scale,
+            automatic_scale=automatic_scale,
             subplotsizes=subplotsizes,
         )
         ax2 = ratio_axes[-1]
@@ -813,6 +817,7 @@ def makeStackPlotWithRatio(
             title_padding=title_padding,
             bin_density=bin_density,
             width_scale=width_scale,
+            automatic_scale=automatic_scale,
         )
         ratio_axes = None
         ax2 = None
@@ -820,7 +825,7 @@ def makeStackPlotWithRatio(
     opts = dict(stack=not no_stack, flow=flow)
     optsr = opts.copy()  # no binwnorm for ratio axis
     if density:
-        opts["density"] = True            
+        opts["density"] = True
     else:
         opts["binwnorm"] = binwnorm
 
@@ -848,7 +853,6 @@ def makeStackPlotWithRatio(
         )
         stack = [s * scale for s in stack]
 
-    
     hep.histplot(
         stack,
         histtype="fill" if not no_fill else "step",
@@ -997,7 +1001,9 @@ def makeStackPlotWithRatio(
             if xlim:
                 unstack = unstack[complex(0, xlim[0]) : complex(0, xlim[1])]
             if density:
-                unstack = hh.scaleHist(unstack, np.sum(ratio_ref.values())/np.sum(unstack.values()))
+                unstack = hh.scaleHist(
+                    unstack, np.sum(ratio_ref.values()) / np.sum(unstack.values())
+                )
 
             stack_ratio = hh.divideHists(
                 unstack,
@@ -1630,7 +1636,7 @@ def redo_axis_ticks(ax, axlabel, no_labels=False):
     fixedloc = ticker.FixedLocator(
         autoloc.tick_values(*getattr(ax, f"get_{axlabel}lim")())
     )
-    if ax.get_xscale() == 'log':
+    if ax.get_xscale() == "log":
         fixedloc = ticker.LogLocator(base=10, numticks=5)
     getattr(ax, f"{axlabel}axis").set_major_locator(fixedloc)
     ticks = getattr(ax, f"get_{axlabel}ticks")()
