@@ -2,8 +2,9 @@ import copyreg
 import pickle
 import sys
 
-import wums
-sys.modules['narf.ioutils'] = sys.modules['wums.ioutils'] # backwards compatibility to use old files
+sys.modules["narf.ioutils"] = sys.modules[
+    "wums.ioutils"
+]  # backwards compatibility to use old files
 
 import boost_histogram as bh
 import h5py
@@ -156,9 +157,11 @@ def reduce_Hist(obj):
     view = get_histogram_view(obj)
     h5buf = H5Buffer(view)
 
+    metadata = obj.metadata if hasattr(obj, "metadata") else None
+
     return (
         make_Hist,
-        (axes, obj.storage_type(), obj.metadata, obj.label, obj.name, h5buf),
+        (axes, obj.storage_type(), metadata, obj.label, obj.name, h5buf),
     )
 
 
