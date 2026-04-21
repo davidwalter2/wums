@@ -11,7 +11,8 @@ import numpy as np
 
 
 class _AxesTuple(tuple):
-    """Tuple of hist axes that supports lookup by name as well as by index."""
+    """Tuple of hist axes supporting lookup by name and the
+    ``size``/``extent`` attributes from ``hist.NamedAxesTuple``."""
 
     def __getitem__(self, key):
         if isinstance(key, str):
@@ -20,6 +21,17 @@ class _AxesTuple(tuple):
                     return ax
             raise KeyError(f"axis '{key}' not found")
         return tuple.__getitem__(self, key)
+
+    @property
+    def size(self):
+        """Per-axis size (no-flow), matching ``hist.NamedAxesTuple.size``."""
+        return tuple(int(len(ax)) for ax in self)
+
+    @property
+    def extent(self):
+        """Per-axis extent (with-flow), matching
+        ``hist.NamedAxesTuple.extent``."""
+        return tuple(int(ax.extent) for ax in self)
 
 
 class SparseHist:
@@ -36,6 +48,10 @@ class SparseHist:
     row-major flattening of this with-flow dense shape. Consumers (such as the
     rabbit ``TensorWriter``) can extract either the with-flow or no-flow layout
     via the ``flow`` parameter on :meth:`toarray` and :meth:`to_flat_csr`.
+
+    The public :attr:`shape` property returns the *no-flow* shape to match
+    ``hist.Hist.shape``. The with-flow dense shape is exposed via
+    ``h.axes.extent``, matching ``hist.NamedAxesTuple.extent``.
 
     Parameters
     ----------
@@ -105,7 +121,14 @@ class SparseHist:
 
     @property
     def shape(self):
-        return self._dense_shape
+        """Dense no-flow shape ``(len(axis) for axis in axes)``.
+
+        Matches the ``hist.Hist.shape`` convention of excluding flow
+        bins. The internal flat-index layout is still with-flow; use
+        ``h.axes.extent`` (same API as ``hist.NamedAxesTuple.extent``)
+        to get the with-flow dense shape when needed.
+        """
+        return self._axes.size
 
     @property
     def dtype(self):
